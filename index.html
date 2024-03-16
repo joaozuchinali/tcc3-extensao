@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste</title>
+
+    <link rel="stylesheet" href="./css/index.css">
+    <script src="./scripts/main.js" type="module" defer></script>
+</head>
+<body>
+    <div class="main">
+        <div class="header" id="tabs-header">
+            <!-- <div class="itens" id="config-tab">Configuração</div>
+            <div class="itens" id="status-tab">Sobre</div> -->
+        </div>
+
+        <div class="content" id="content">
+            <!-- Primeira mensagem exibida -->
+            <div class="wrapper">
+                <div class="row">
+                    <h4>
+                        Carregando base de dados
+                    </h4>
+                </div>
+            </div>
+
+            <div id="wrapper-loading" class="wrapper-loading hidden">
+                <span id="loading-message">Carregando...</span>
+            </div>
+        </div>
+    </div>
+
+
+    <template id="template-config">
+        <div class="wrapper">
+            <div class="row">
+                <div class="info-card">
+                    <div class="message">
+                        <span>Bem vindo a tela de configuração da extensão referente ao trabalho de conclusão de curso do aluno João Vitor Zucchinali Ghislandi.</span>
+                        <span id="no-config-message">
+                            Por favor insira o código de identificação do projeto no primeiro campo e o código de acesso
+                            que foi providênciado.
+                        </span>
+                        <span id="config-message" class="hidden">
+                            As configurações da extensão estão funcionais, caso queira se conectar a um novo projeto
+                            clique em no botão abaixo.
+                        </span>
+                    </div>
+                    <div class="hidden" id="wrapper-encerrar-sessao">
+                        <p>
+                            <button class="btn btn-primary btn-small" id="end-project">
+                                Desconectar do projeto
+                            </button>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col" id="config-fields-wrapper">
+                <div class="field-config-wrapper">
+                    <input class="field-config" type="text" id="identificador-projeto">
+                    <span class="label">Identificador:</span>
+                </div>
+                <div class="field-config-wrapper">
+                    <input class="field-config" type="password" id="senha-projeto">
+                    <span class="label">Código de Acesso:</span>
+                </div>
+                <div class="hidden error-p" id="paragraph-config-error">
+                    <div id="text-config-errors" style="width: 300px;max-width: 300px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row" id="config-project-wrapper">
+                <button class="btn btn-primary w200" id="config-project">Configurar projeto</button>
+            </div>
+
+            <div class="hidden row" id="project-infos-wrapper">
+                <span id="projeto-infos"></span>
+            </div>
+
+            <div class="row hidden" id="sess-controls-wrapper">
+                <button id="start-sess" class="btn btn-success">Iniciar a sessão</button>
+                <button id="end-sess" class="btn btn-danger hidden">Parar a sessão</button>
+            </div>
+        </div>
+    </template>
+
+    <template id="template-infos">
+        <div class="wrapper">
+            <div class="row">
+                <div class="info-card">
+                    <div class="message">
+                        Segue abaixo alguns dados sobre o seu uso da extensão.
+                    </div>
+                </div>
+            </div>
+            <hr style="width: 100%;">
+            <div class="row">
+                <div class="info-card">
+                    <div class="message">
+                        <span>
+                            <b>Tempo acumulado de uso: </b>
+                            <span id="about-time"></span>
+                        </span>
+                        <br>
+                        <span>
+                            <b>Registros realizados: </b>
+                            <span id="about-registers"></span>
+                        </span>
+                        <br>
+                        <span>
+                            <b>Projetos sincronizados: </b>
+                            <span id="about-projects"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+</body>
+</html>

@@ -1,0 +1,76 @@
+@import url('./page-config.css');
+@import url('./page-info.css');
+@import url('./buttons.css');
+@import url('./info-card.css');
+
+/* Configurações básicas do área de conteúdos e import das telas específicas */
+.main .content {
+    background-color: white;
+    height: 465px;
+    width: 100%;
+    position: relative;
+}
+
+.main .content .hidden,
+.main .content .hidden * {
+    display: none !important;
+    width: 0px !important;
+    height: 0px !important;
+    box-shadow: 0px 0px 0px 0px !important;
+    background-color: transparent !important;
+    font-size: 0px !important;
+    border: 0px !important;
+    padding: 0px !important;
+    margin: 0px !important;
+}
+
+.main .content .wrapper {
+    padding: 8px;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.main .content .wrapper .row,
+.main .content .wrapper .col{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 100%;
+    min-height: 50px;
+    margin-bottom: 8px;
+}
+
+.main .content .wrapper .row {
+    flex-direction: row;
+}
+
+.main .content .wrapper .col {
+    flex-direction: column;
+}
+
+.main .content .wrapper .error-p {
+    color: var(--danger-red);
+    margin-top: 16px;
+}
+
+.main .content .wrapper-loading {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0px;
+    left: 0px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--grey-background-075);
+}
+
+.main .content .wrapper-loading #loading-message {
+    font-size: 32px;
+    color: rgb(64, 64, 64);
+}

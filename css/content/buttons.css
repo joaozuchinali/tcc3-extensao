@@ -1,0 +1,50 @@
+.btn {
+    min-width: 100px;
+    outline: 0px;
+    border: 1px solid black;
+    color: black;
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px;
+    height: 30px;
+    cursor: pointer;
+}
+
+.btn.btn-primary,
+.btn.btn-success,
+.btn.btn-danger {
+    border: 0px;
+    color: white;
+}
+
+.btn.btn-primary {
+    background-color: var(--soft-blue);
+}
+.btn.btn-primary:active{
+    background-color: var(--soft-blue-selected);
+}
+
+.btn.btn-success {
+    background-color: var(--success-green);
+}
+.btn.btn-success:active{
+    background-color: var(--success-green-selected);
+}
+
+.btn.btn-danger {
+    background-color: var(--danger-red);
+}
+.btn.btn-danger:active{
+    background-color: var(--danger-red-selected);
+}
+
+.btn.w200 {
+    width: 200px;
+}
+
+.btn-small {
+    font-size: 12px;
+    height: 28px;
+}

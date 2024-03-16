@@ -1,0 +1,47 @@
+/* Estilo padrão do campo */
+.field-config-wrapper {
+    position: relative;
+    height: 45px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.field-config-wrapper .label {
+    position: absolute;
+    left: 8px;
+    font-size: 8px;
+    top: 2px;
+    color: black;
+    transition: color 0.5s ease;
+}
+
+.field-config-wrapper .field-config {
+    width: 200px;
+    border-radius: 4px;
+    border: 1.5px solid black;
+    height: 32px;
+    font-size: 18px;
+    transition: border 0.5s ease;
+    outline: none !important;
+}
+
+/* Mudança de cor ao selecionar o campo */
+.field-config-wrapper .field-config:focus {
+    border: 1.5px solid var(--strong-blue);
+    transition: border 0.5s ease;
+}
+
+.field-config-wrapper .field-config:focus + .label {
+    color: var(--strong-blue);
+    transition: color 0.5s ease;
+}
+
+/* Nos casos de erro de input */
+.field-config-wrapper .field-config.error {
+    border: 1.5px solid var(--danger-red) !important;
+    transition: color 0.5s ease !important;
+}
+.field-config-wrapper .field-config.error + .label {
+    color: var(--danger-red) !important;
+}
