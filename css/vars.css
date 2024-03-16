@@ -1,0 +1,16 @@
+:root {
+    --grey-background: #e9e9e9;
+    --grey-background-075: #e9e9e9cc;
+    --purple-font: rgb(93, 27, 168);
+    --soft-blue: rgb(67, 146, 210);
+    --soft-blue-selected: rgb(57, 126, 182);
+    --baby-blue: rgb(210, 227, 241);;
+    --strong-blue: rgb(20, 65, 229);
+    --soft-dark: rgb(65, 65, 65);
+    --success-green: rgb(66, 194, 6);
+    --success-green-selected: rgb(11, 136, 30);
+    --danger-red: rgb(196, 48, 48);
+    --danger-red-selected: rgb(148, 39, 39);
+
+    --header-item-radios: 4px;
+}

@@ -1,0 +1,48 @@
+/* Configura os estilos da barra superior da extensão */
+.main .header {
+    height: 35px;
+    width: 100%;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: flex-end;
+
+    overflow-x: scroll;
+}
+
+/* Esconder barra de rolagem */
+.main .header::-webkit-scrollbar {
+    display: none; /* Chrome, Safari & Opera*/
+}
+
+.main .header {
+    scrollbar-width: none;  /* Firefox */
+}
+
+.main .header .itens {
+
+    flex-grow: 1;
+    height: 100%;
+    padding-left: 8px;
+
+    background-color: var(--grey-background);
+    color: black;
+
+    font-size: 12px;
+    font-family: Arial, Helvetica, sans-serif;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+
+    cursor: pointer;
+    transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+.main .header .itens.active {
+    background-color: var(--soft-blue);
+    color: white;
+    transition: background-color 0.5s ease, color 0.5s ease;
+}
