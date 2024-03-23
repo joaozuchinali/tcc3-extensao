@@ -13,6 +13,11 @@
         "userScripts",
         "topSites",
         "tabGroups",
-        "history"
-    ]
+        "history",
+        "webNavigation"
+    ],
+    "background": {
+        "service_worker": "./scripts/worker/service-worker.js",
+        "type": "module"
+      }
 }

@@ -1,4 +1,5 @@
-import { getProject, requestAcess, setProject, cleanProject } from "../../db/database.js";
+import { requestAcess } from "../../utils/requests.js";
+import { setProject, getProject, disableProject, setProjectSess } from "../../db/database.js";
 import { SESSAO } from "../../utils/sessao.js";
 import { Triggers } from "../../utils/triggers.js";
 import { clsToggle } from "../../utils/style.js";
@@ -16,7 +17,11 @@ function setViews() {
     if(SESSAO.load_config == true) {
         getProject()
         .then((project) => {
-            changeView(project)
+            SESSAO.load_config = false;
+            SESSAO.project_loaded = JSON.parse(JSON.stringify(project));
+
+            changeView(project);
+            autoSess();
         })
         .catch((err) => {
             console.log(err);
@@ -25,6 +30,7 @@ function setViews() {
     }
     else {
         changeView(SESSAO.project_loaded);
+        autoSess();
     }
 }
 
@@ -40,7 +46,7 @@ function changeView(project) {
 
     const cls = 'hidden'
     
-    if(project.exists) {
+    if(project.active) {
         // Card superior
         clsToggle(noConfiMessage, cls, 1);
         clsToggle(configMessage, cls, 0);
@@ -72,8 +78,6 @@ function changeView(project) {
         clsToggle(sessControlBtns, cls, 1);
     }
 
-    SESSAO.load_config = false;
-    SESSAO.project_loaded = JSON.parse(JSON.stringify(project));
     Triggers.hideLoadding();
 }
 
@@ -124,13 +128,11 @@ async function configStart() {
 
     const acessrequest = await requestAcess(identificador.value, codigoAcesso.value);
     if(acessrequest.status == 1) {
-        console.log('acessrequest entered')
         const setter = await setProject(acessrequest.project);
         SESSAO.pretend_config = true; // testes
         
         SESSAO.load_config = true;
         SESSAO.project_loaded = null;
-
         setViews();
     } else {
         Triggers.hideLoadding();
@@ -138,22 +140,52 @@ async function configStart() {
     }
 }
 
+// Muda visual dos botões de sessão caso um projeto já exista
+function autoSess() {
+    if(SESSAO.project_loaded != null && SESSAO.project_loaded != undefined) {
+        const initSess = document.querySelector('#content #start-sess');
+        const endSess  = document.querySelector("#content #end-sess");
+
+        if(SESSAO.project_loaded.running != undefined && SESSAO.project_loaded.running == true) {
+            startSession(initSess, endSess, false);
+        } else if(SESSAO.project_loaded.running != undefined && SESSAO.project_loaded.running == false) {
+            endSession(initSess, endSess, false);
+        }
+    }
+}
+
 // Inicializa uma sessão
-function startSession(initSess, endSess) {
+function startSession(initSess, endSess, auto = false) {
+    if(auto == false) {
+        Triggers.showLoadding();
+    }
+
     SESSAO.session_active = true;
     initSess.classList.add('hidden');
     endSess.classList.remove('hidden');
 
-    // ... faça algo
+    if(auto == false) {
+        setProjectSess(true).then(e => {
+            Triggers.hideLoadding();
+        });
+    }
 }
 
 // Finaliza uma sessão
-function endSession(initSess, endSess) {
+function endSession(initSess, endSess, auto = false) {
+    if(auto == false) {
+        Triggers.showLoadding();
+    }
+
     SESSAO.session_active = false;
     initSess.classList.remove('hidden');
     endSess.classList.add('hidden');
 
-    // ... faça algo
+    if(auto == false) {
+        setProjectSess(false).then(e => {
+            Triggers.hideLoadding();
+        });
+    }
 }
 
 // Desconecta um projeto
@@ -161,7 +193,7 @@ function projectDisconnect() {
     SESSAO.session_active = false;
 
     Triggers.showLoadding();
-    cleanProject().then((e) => {
+    disableProject().then((e) => {
         Triggers.sessResetConfig();
         setViews();
     })
