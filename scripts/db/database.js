@@ -8,8 +8,10 @@ const DB_NAME = 'tcc3-extensao';
 const PROJECT_TABLE = "projeto-atual";
 const EXT_TABLE = 'ext-table';
 const DATA_TABLE = 'data';
+const TIME_TABLE = 'time';
+const LAST_TABLE = 'last-record'
 // Db version corde
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 let dbExtensao = null;
 
@@ -44,7 +46,9 @@ async function createTables() {
     dbExtensao.version(DB_VERSION).stores({
         [PROJECT_TABLE]: "++id,projectId,userId,active,running",
         [EXT_TABLE]: "++id,extId",
-        [DATA_TABLE]: "++id,url"
+        [DATA_TABLE]: "++id,url",
+        [TIME_TABLE]: "++id,url,time",
+        [LAST_TABLE]: "++id"
     });
 }
 
@@ -79,6 +83,7 @@ function extInfoConfig() {
         
         dbExtensao.transaction('rw', EXT_TABLE, async function () {
             const idkey = `${generateKey(200)}`;
+            await dbExtensao._allTables[EXT_TABLE].clear();
             await dbExtensao._allTables[EXT_TABLE].add({ extId: idkey });
             resolve(true);
         }).catch(error => {
@@ -169,8 +174,39 @@ function insertDataRecord(record) {
     return new Promise(async (resolve, reject) => {
         await creatDbVer();
         
-        dbExtensao.transaction('rw', DATA_TABLE, async function () {
-            await dbExtensao._allTables[DATA_TABLE].add(record);
+        dbExtensao.transaction('rw', PROJECT_TABLE, DATA_TABLE, async function () {
+            const vec = await dbExtensao._allTables[PROJECT_TABLE].where('id').notEqual(-1).and(e => e.active == true).toArray();
+            if(!Array.isArray(vec) || !vec[0])
+            return;
+
+            const projetoAtual = vec[0];
+            if(projetoAtual.running == false)
+            return;
+        
+            await dbExtensao._allTables[DATA_TABLE].add({...record, projectId: projetoAtual.projectId});
+
+            updateLastRecord(record);
+            resolve(true);
+        }).catch(error => {
+            console.log(error);
+            resolve(false);
+        });
+    });
+}
+
+// Salva a quantidade de tempo gasta em determinada url
+function insertDataTime(record) {
+
+}
+
+// Atualiza tabela que armazena o último registro capturado
+function updateLastRecord(record) {
+    return new Promise(async (resolve, reject) => {
+        await creatDbVer();
+        
+        dbExtensao.transaction('rw', LAST_TABLE, async function () {
+            await dbExtensao._allTables[LAST_TABLE].clear();
+            await dbExtensao._allTables[LAST_TABLE].add(record);
             resolve(true);
         }).catch(error => {
             console.log(error);
