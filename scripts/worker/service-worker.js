@@ -19,9 +19,27 @@ chrome.runtime.onInstalled.addListener(function() {
 // });
 
 // Escuta quando o navegador troca de tab
-chrome.tabs.onActivated.addListener(function() {
-    const url = window.location.
-    startDatabase().then(() => {
-        insertDataRecord({ url: "xxx" });
-    });
+let firstTabClick = true;
+chrome.tabs.onActivated.addListener(async function() {
+    let queryOptions = { active: true, currentWindow: true };
+    let [tab] = await chrome.tabs.query(queryOptions);
+
+    let reg = { ...tab };
+    reg.idNav = reg.id;
+    delete reg.id;
+
+    if(firstTabClick || firstTabClick == undefined) {
+        firstTabClick = false
+        startDatabase().then(() => {
+            // checkDataRecord(reg)
+            insertDataRecord(reg);
+        });
+    } else if (firstTabClick != undefined) {
+        // checkDataRecord(reg)
+        insertDataRecord(reg);
+    }
+
+    if(firstTabClick == undefined) {
+        firstTabClick = true;
+    }
 });
