@@ -20,6 +20,7 @@ chrome.runtime.onInstalled.addListener(function() {
 
 // Escuta quando o navegador troca de tab
 chrome.tabs.onActivated.addListener(function() {
+    const url = window.location.
     startDatabase().then(() => {
         insertDataRecord({ url: "xxx" });
     });
