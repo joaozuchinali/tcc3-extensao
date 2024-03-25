@@ -1,4 +1,4 @@
-import { startDatabase, extInfoConfig, insertDataRecord } from "../db/database.js";
+import { startDatabase, extInfoConfig, insertDataRecord, formatDataRecordTabs } from "../db/database.js";
 
 // Inicializa o banco todas as vezes que abrir o navegador
 chrome.runtime.onStartup.addListener(function() {
@@ -21,21 +21,16 @@ chrome.runtime.onInstalled.addListener(function() {
 // Escuta quando o navegador troca de tab
 let firstTabClick = true;
 chrome.tabs.onActivated.addListener(async function() {
-    let queryOptions = { active: true, currentWindow: true };
-    let [tab] = await chrome.tabs.query(queryOptions);
-
-    let reg = { ...tab };
-    reg.idNav = reg.id;
-    delete reg.id;
+    const tab = await getTabInfo();
+    const reg = formatDataRecordTabs({...tab});
 
     if(firstTabClick || firstTabClick == undefined) {
-        firstTabClick = false
+        firstTabClick = false;
+        
         startDatabase().then(() => {
-            // checkDataRecord(reg)
             insertDataRecord(reg);
         });
     } else if (firstTabClick != undefined) {
-        // checkDataRecord(reg)
         insertDataRecord(reg);
     }
 
@@ -43,3 +38,11 @@ chrome.tabs.onActivated.addListener(async function() {
         firstTabClick = true;
     }
 });
+
+// Retorna um objeto contendo as informações atuais da tab selecionada
+async function getTabInfo() {
+    let queryOptions = { active: true, currentWindow: true };
+    let [tab] = await chrome.tabs.query(queryOptions);
+
+    return tab;
+}
