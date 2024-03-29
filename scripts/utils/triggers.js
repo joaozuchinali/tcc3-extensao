@@ -20,6 +20,7 @@ function _clearConfigInputs() {
 
 // Reseta a sessão global ao estado inicial da tela de configuração
 function _sessResetConfig() {
+    SESSAO.session_active = false;
     SESSAO.load_config = true;
     SESSAO.project_loaded = null;
     SESSAO.pretend_config = false; // testes
