@@ -17,8 +17,12 @@ function setViews() {
     if(SESSAO.load_config == true) {
         getProject()
         .then((project) => {
-            SESSAO.load_config = false;
-            SESSAO.project_loaded = JSON.parse(JSON.stringify(project));
+            if(project.status == false) {
+                Triggers.configError(project.msg);
+            } else {
+                SESSAO.load_config = false;
+                SESSAO.project_loaded = JSON.parse(JSON.stringify(project));
+            }
 
             changeView(project);
             autoSess();
@@ -129,6 +133,11 @@ async function configStart() {
     const acessrequest = await requestAcess(identificador.value, codigoAcesso.value);
     if(acessrequest.status == 1) {
         const setter = await setProject(acessrequest.project);
+        if(setter.status == false) {
+            Triggers.configError(setter.msg);
+            Triggers.hideLoadding();
+            return;
+        }
         SESSAO.pretend_config = true; // testes
         
         SESSAO.load_config = true;
@@ -160,12 +169,17 @@ function startSession(initSess, endSess, auto = false) {
         Triggers.showLoadding();
     }
 
-    SESSAO.session_active = true;
-    initSess.classList.add('hidden');
-    endSess.classList.remove('hidden');
-
     if(auto == false) {
-        setProjectSess(true).then(e => {
+        setProjectSess(true)
+        .then(sess => {
+            if(sess.status == false) {
+                Triggers.configError(sess.msg);
+            } else {
+                SESSAO.session_active = true;
+                initSess.classList.add('hidden');
+                endSess.classList.remove('hidden');
+            }
+
             Triggers.hideLoadding();
         });
     }
@@ -177,12 +191,16 @@ function endSession(initSess, endSess, auto = false) {
         Triggers.showLoadding();
     }
 
-    SESSAO.session_active = false;
-    initSess.classList.remove('hidden');
-    endSess.classList.add('hidden');
-
     if(auto == false) {
         setProjectSess(false).then(e => {
+            if(sess.status == false) {
+                Triggers.configError(sess.msg);
+            } else {
+                SESSAO.session_active = false;
+                initSess.classList.remove('hidden');
+                endSess.classList.add('hidden');
+            }
+
             Triggers.hideLoadding();
         });
     }
@@ -190,12 +208,18 @@ function endSession(initSess, endSess, auto = false) {
 
 // Desconecta um projeto
 function projectDisconnect() {
-    SESSAO.session_active = false;
+    
 
     Triggers.showLoadding();
-    disableProject().then((e) => {
-        Triggers.sessResetConfig();
-        setViews();
+    disableProject().then((info) => {
+        if(info.status == false) {
+            Triggers.configError(info.msg);
+            Triggers.hideLoadding();
+        } else {
+            Triggers.sessResetConfig();
+            setViews();
+        }
+
     })
     .catch((err) => {
         console.log(err);

@@ -79,16 +79,17 @@ function dbExists() {
 // Cria um registro na tabela de informações sobre aa extensão
 function extInfoConfig() {
     return new Promise(async (resolve, reject) => {
-        await creatDbVer();
-        
-        dbExtensao.transaction('rw', EXT_TABLE, async function () {
+        try {
+            await creatDbVer();
+            
             const idkey = `${generateKey(200)}`;
             await dbExtensao._allTables[EXT_TABLE].clear();
             await dbExtensao._allTables[EXT_TABLE].add({ extId: idkey });
             resolve(true);
-        }).catch(error => {
+        } catch (error) {
             console.log(error);
-        });
+            resolve(false);
+        }
     });
 }
 
@@ -97,82 +98,84 @@ function extInfoConfig() {
 // Recebe os valores de um registro de projeto e cadastra na tabela
 function setProject(projeto) {
     return new Promise(async (resolve, reject) => {
-        await creatDbVer();
-        
-        dbExtensao.transaction('rw', PROJECT_TABLE, async function () {
+        try {
+            await creatDbVer();
             await dbExtensao._allTables[PROJECT_TABLE].add(projeto);
-            resolve(true);
-        }).catch(error => {
+
+            resolve({status: true, msg: 'Sucesso em definir o projeto'});
+        } catch (error) {
             console.log(error);
-            resolve(false);
-        });
+            resolve({status: false, msg: 'Falha em definir o projeto'});
+        }
     });
 }
 
 // Retorna o projeto atual caso existir, ou um fallback caso não existir
 function getProject() {
     return new Promise(async (resolve, reject) => {
-        await creatDbVer();
-
-        dbExtensao.transaction('rw', PROJECT_TABLE, async function () {
+        try {
+            await creatDbVer();
+    
             const registers = await dbExtensao._allTables[PROJECT_TABLE]
             .where('id')
             .notEqual(-1)
             .and(e => e.active == true)
             .toArray();
-
+    
             if(Array.isArray(registers) && registers[0]) {
-                resolve(registers[0])
+                resolve({...registers[0], status: true, msg: 'Sucesso em carregar o projeto'})
             } else {
-                resolve({ projectId: '', userId: '', active: false });
+                resolve({ projectId: '', userId: '', active: false, status: true, msg: 'Sucesso em carregar o projeto' });
             }
-        }).catch(error => {
+        } catch (error) {
             console.log(error);
-            resolve({ projectId: '', userId: '', active: false });
-        });
+            resolve({status: false, msg: 'Falha em carregar o projeto atual'});
+        }
     });
 }
 
 // Muda o status de um projeto atualmente ativo
 function disableProject() {
     return new Promise(async (resolve, reject) => {
-        await creatDbVer();
-
-        dbExtensao.transaction('rw', PROJECT_TABLE, async function () {
+        
+        try {
+            await creatDbVer();
+    
             const registers = await dbExtensao._allTables[PROJECT_TABLE]
             .where('id')
             .notEqual(-1)
             .and(e => e.active == true)
             .toArray();
-
+    
             if(Array.isArray(registers) && registers[0]) {
                 await dbExtensao._allTables[PROJECT_TABLE]
                 .update(
                     registers[0].id, 
                     { active: false, running: false }
                 );
-
-                resolve(true);
+    
+                resolve({status: true, msg: 'Sucesso em desabilitar o projeto'});
             }
-        }).catch(error => {
+        } catch (error) {
             console.log(error);
-            resolve(false);
-        });
+            resolve({status: false, msg: 'Falha ao desabilitar o projeto'});
+        }
     });
 }
 
 // Muda o status da sessão entre executando e não executando
 function setProjectSess(status = false) {
     return new Promise(async (resolve, reject) => {
-        await creatDbVer();
-
-        dbExtensao.transaction('rw', PROJECT_TABLE, async function () {
+        
+        try {
+            await creatDbVer();
+    
             const queryProject = await dbExtensao._allTables[PROJECT_TABLE]
             .where('id')
             .notEqual(-1)
             .and(e => e.active == true)
             .toArray();
-
+    
             if(Array.isArray(queryProject) && queryProject[0]) {
                 const updateValues = { running: status };
                 await dbExtensao._allTables[PROJECT_TABLE]
@@ -181,12 +184,12 @@ function setProjectSess(status = false) {
                     updateValues
                 );
                 
-                resolve(true);
+                resolve({status: true, msg: 'Sucesso ao configurar a sessão do projeto'});
             }
-        }).catch(error => {
+        } catch (error) {
             console.log(error);
-            resolve(false);
-        });
+            resolve({status: false, msg: 'Falha em configurar a sessão do projeto'});
+        }
     });
 }
 
@@ -195,9 +198,10 @@ function setProjectSess(status = false) {
 // Insere um registro na tabela
 function insertDataRecord(record) {
     return new Promise(async (resolve, reject) => {
-        await creatDbVer();
         
-        dbExtensao.transaction('rw', PROJECT_TABLE, TIME_TABLE, DATA_TABLE, LAST_TABLE, async function () {
+        try {
+            await creatDbVer();
+            
             // Valida existência de um projeto ativo rodando
             const queryProject = await dbExtensao._allTables[PROJECT_TABLE]
             .where('id')
@@ -205,12 +209,12 @@ function insertDataRecord(record) {
             .and(
                 e => e.active == true
             ).toArray();
-
+    
             if(!Array.isArray(queryProject) || !queryProject[0]) {
                 resolve(false);
                 return;
             }
-
+    
             const projetoAtual = queryProject[0];
             if(projetoAtual.running == false) {
                 resolve(false);
@@ -219,14 +223,15 @@ function insertDataRecord(record) {
         
             const dataInput = {...record, projectId: projetoAtual.projectId};
             await dbExtensao._allTables[DATA_TABLE].add(dataInput);
-
+    
+            console.log('pre-datatime-op');
             await insertDataTime(record);
             await updateLastRecord(record);
             resolve(true);
-        }).catch(error => {
+        } catch (error) {
             console.log(error);
             resolve(false);
-        });
+        }
     });
 }
 
@@ -236,10 +241,10 @@ function insertDataRecord(record) {
 // - Apenas um domínio por website e projeto, sem duplicatas
 function insertDataTime(record, ignoreDbVer = false) {
     return new Promise(async (resolve, reject) => {
-        if(!ignoreDbVer)
-        await creatDbVer();
-        
-        dbExtensao.transaction('rw', PROJECT_TABLE, TIME_TABLE, LAST_TABLE, async function () {
+        try {
+            if(!ignoreDbVer)
+            await creatDbVer();
+            
             // Valida existência de um projeto ativo rodando
             const queryProject = await dbExtensao._allTables[PROJECT_TABLE]
             .where('id')
@@ -247,24 +252,26 @@ function insertDataTime(record, ignoreDbVer = false) {
             .and(
                 e => e.active == true
             ).toArray();
-
+    
             if(!Array.isArray(queryProject) || !queryProject[0]) {
                 resolve(false);
                 return;
             }
-
+    
+            // Verifica se o projeto está rodando
             const projetoAtual = queryProject[0];
             if(projetoAtual.running == false) {
                 resolve(false);
                 return;
             }
-
+    
+            // Retorna o registro do demínio atual caso existir
             const queryTime = await dbExtensao._allTables[TIME_TABLE]
             .where('domain')
             .equals(String(record.domain))
             .and(registro => registro.projectId == projetoAtual.projectId)
             .toArray();
-
+    
             if(!Array.isArray(queryTime) || queryTime.length == 0) {
                 const dataInput = {
                     domain: record.domain, 
@@ -275,89 +282,90 @@ function insertDataTime(record, ignoreDbVer = false) {
             } else {
                 await updateTimeAmount({...queryTime[0]}, {...projetoAtual}, record, true);
             }
-
-            console.log('finished insertDataTime')
-
+    
+            console.log('finished insertDataTime');
             resolve(true);
-        }).catch(error => {
+        } catch (error) {
             console.log(error);
             resolve(false);
-        });
+        }
     });
 }
 
 // Função que realiza a atualização da quantidade de tempo gasto em um determinado domínio
+// **Assume-se que a função sempre será chamada dentro de uma transaction pai**
 function updateTimeAmount(currentTime, projetoAtual, record, ignoreDbVer = false) {
     return new Promise(async (resolve, reject) => {
-        if(!ignoreDbVer)
-        await creatDbVer();
-        
-        dbExtensao.transaction('rw', PROJECT_TABLE, TIME_TABLE, LAST_TABLE, async function () {
-            // ... Cálculos 
-            // lastAccessed
-            const last = await getLastRecord(true);
+        try {
+            if(!ignoreDbVer)
+            await creatDbVer();
+            
+            const last = await getLastRecord(true, false);
             if(last == false) {
                 resolve(false);
                 return;
             }
-
+    
             const timeDiff = record.acessTime - last.acessTime;
             const total = (currentTime.time != undefined && !isNaN(currentTime.time) ? currentTime.time : 0) + timeDiff;
-
+    
             console.log(currentTime, record);
             console.log(record.acessTime, last.acessTime, currentTime.time);
             console.log(timeDiff, total);
-
+    
             await dbExtensao._allTables[TIME_TABLE]
             .update(
                 currentTime.id, 
                 { time: total }
             );
-
+    
             console.log('finished update');
             resolve(true);
-        }).catch(error => {
+        } catch (error) {
             console.log(error);
             resolve(false);
-        });
+        }
     });
 }
 
 // Atualiza tabela que armazena o último registro capturado
+// **Assume-se que a função sempre será chamada dentro de uma transaction pai**
 function updateLastRecord(record, ignoreDbVer = false) {
     return new Promise(async (resolve, reject) => {
-        if(!ignoreDbVer)
-        await creatDbVer();
-        
-        dbExtensao.transaction('rw', LAST_TABLE, async function () {
+        try {
+            if(!ignoreDbVer)
+            await creatDbVer();
+            
             await dbExtensao._allTables[LAST_TABLE].clear();
             await dbExtensao._allTables[LAST_TABLE].add(record);
+    
+            console.log('finished last record');
             resolve(true);
-        }).catch(error => {
+        } catch (error) {
             console.log(error);
             resolve(false);
-        });
+        }
     });
 }
 
 // Retorna o registro atualmente salvo como last
 function getLastRecord(ignoreDbVer = false) {
     return new Promise(async (resolve, reject) => {
-        if(!ignoreDbVer)
-        await creatDbVer();
-        
-        dbExtensao.transaction('rw', LAST_TABLE, async function () {
+        try {
+            if(!ignoreDbVer)
+            await creatDbVer();
+            
             const queryLast = await dbExtensao._allTables[LAST_TABLE].toArray();
             if(!Array.isArray(queryLast) || queryLast.length == 0) {
                 resolve(false);
                 return;
             }
-
+    
             resolve(queryLast[0]);
-        }).catch(error => {
+        } catch (error) {
             console.log(error);
             resolve(false);
-        });
+        }
     });
 }
 
