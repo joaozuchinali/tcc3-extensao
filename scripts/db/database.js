@@ -1,6 +1,7 @@
 // Documentação: https://dexie.org/docs/API-Reference
 import Dexie from '../../plugins/dexie-3.2.7.js'
 import { generateKey } from '../utils/keygenerator.js';
+import { isSearchUrl } from '../utils/urls.js';
 
 // Db name
 const DB_NAME = 'tcc3-extensao';
@@ -224,7 +225,7 @@ function insertDataRecord(record) {
             const dataInput = {...record, projectId: projetoAtual.projectId};
             await dbExtensao._allTables[DATA_TABLE].add(dataInput);
     
-            console.log('pre-datatime-op');
+            // console.log('pre-datatime-op');
             await insertDataTime(record);
             await updateLastRecord(record);
             resolve(true);
@@ -265,7 +266,7 @@ function insertDataTime(record, ignoreDbVer = false) {
                 return;
             }
     
-            // Retorna o registro do demínio atual caso existir
+            // Retorna o registro do domínio atual caso existir
             const queryTime = await dbExtensao._allTables[TIME_TABLE]
             .where('domain')
             .equals(String(record.domain))
@@ -283,7 +284,7 @@ function insertDataTime(record, ignoreDbVer = false) {
                 await updateTimeAmount({...queryTime[0]}, {...projetoAtual}, record, true);
             }
     
-            console.log('finished insertDataTime');
+            // console.log('finished insertDataTime');
             resolve(true);
         } catch (error) {
             console.log(error);
@@ -309,9 +310,9 @@ function updateTimeAmount(currentTime, projetoAtual, record, ignoreDbVer = false
             const timeDiff = record.acessTime - last.acessTime;
             const total = (currentTime.time != undefined && !isNaN(currentTime.time) ? currentTime.time : 0) + timeDiff;
     
-            console.log(currentTime, record);
-            console.log(record.acessTime, last.acessTime, currentTime.time);
-            console.log(timeDiff, total);
+            // console.log(currentTime, record);
+            // console.log(record.acessTime, last.acessTime, currentTime.time);
+            // console.log(timeDiff, total);
     
             await dbExtensao._allTables[TIME_TABLE]
             .update(
@@ -319,7 +320,7 @@ function updateTimeAmount(currentTime, projetoAtual, record, ignoreDbVer = false
                 { time: total }
             );
     
-            console.log('finished update');
+            // console.log('finished update');
             resolve(true);
         } catch (error) {
             console.log(error);
@@ -339,7 +340,7 @@ function updateLastRecord(record, ignoreDbVer = false) {
             await dbExtensao._allTables[LAST_TABLE].clear();
             await dbExtensao._allTables[LAST_TABLE].add(record);
     
-            console.log('finished last record');
+            // console.log('finished last record');
             resolve(true);
         } catch (error) {
             console.log(error);
@@ -369,6 +370,23 @@ function getLastRecord(ignoreDbVer = false) {
     });
 }
 
+// Apaga o último registro
+function deleteLastRecord(ignoreDbVer = false) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if(!ignoreDbVer)
+            await creatDbVer();
+            
+            await dbExtensao._allTables[LAST_TABLE].clear();
+    
+            resolve(true);
+        } catch (error) {
+            console.log(error);
+            resolve(false);
+        }
+    });
+}
+
 // Retorna um objeto formatado para registro no banco IndexedDB
 // - recebe um objeto contendo as informações da tab atual
 function formatDataRecordTabs(tabinfo) {
@@ -376,13 +394,26 @@ function formatDataRecordTabs(tabinfo) {
     reg.idNav = reg.id;
     delete reg.id;
 
-    let domain = (new URL(reg.url));
-    reg = { 
-        domain: domain.hostname, 
-        acessTime: (new Date()).getTime(),
-        ...reg
-    };
+    let domain = '';
+    if(isSearchUrl(domain)) {
+        domain = reg.url != '' && reg.url != undefined ? reg.url : 'start-page';
 
+        reg = { 
+            domain: domain, 
+            acessTime: (new Date()).getTime(),
+            ...reg
+        };
+    
+    } else {
+        domain = (new URL(reg.url));
+
+        reg = { 
+            domain: domain.hostname, 
+            acessTime: (new Date()).getTime(),
+            ...reg
+        };
+    
+    }
     return reg;
 }
 
@@ -394,5 +425,6 @@ export {
     disableProject,
     setProjectSess,
     insertDataRecord,
-    formatDataRecordTabs
+    formatDataRecordTabs,
+    deleteLastRecord
 }

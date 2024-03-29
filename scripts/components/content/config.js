@@ -192,7 +192,7 @@ function endSession(initSess, endSess, auto = false) {
     }
 
     if(auto == false) {
-        setProjectSess(false).then(e => {
+        setProjectSess(false).then(sess => {
             if(sess.status == false) {
                 Triggers.configError(sess.msg);
             } else {
