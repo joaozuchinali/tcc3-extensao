@@ -10,9 +10,10 @@ const PROJECT_TABLE = "projeto-atual";
 const EXT_TABLE = 'ext-table';
 const DATA_TABLE = 'data';
 const TIME_TABLE = 'time';
-const LAST_TABLE = 'last-record'
+const LAST_TABLE = 'last-record';
+const WINDOW_TABLE = 'window-table';
 // Db version corde
-const DB_VERSION = 8;
+const DB_VERSION = 9;
 
 let dbExtensao = null;
 
@@ -22,16 +23,12 @@ async function startDatabase() {
     await creatDbVer();
 }
 
-// Define o valor da variável do banco
-function setDb(db) {
-    dbExtensao = db;
-}
-
 // Função centralizadora da criação do banco
 // 1. Primeiro verifica se o banco já existe
 // 2. Caso não existir cria o banco
-async function creatDbVer(ignore = true) {
-    if(ignore) {
+async function creatDbVer(checkIfExists = true) {
+    // Caso o banco não existir um novo chamamento será realizado
+    if(checkIfExists) {
         await dbExists();
         return;
     }
@@ -49,8 +46,14 @@ async function createTables() {
         [EXT_TABLE]: "++id,extId",
         [DATA_TABLE]: "++id,domain,projectId",
         [TIME_TABLE]: "++id,domain,projectId,time",
-        [LAST_TABLE]: "++id"
+        [LAST_TABLE]: "++id",
+        [WINDOW_TABLE]: "++id,wid"
     });
+}
+
+// Define o valor da variável do banco
+function setDb(db) {
+    dbExtensao = db;
 }
 
 // Verifica se o banco de dados já existe
@@ -138,7 +141,6 @@ function getProject() {
 // Muda o status de um projeto atualmente ativo
 function disableProject() {
     return new Promise(async (resolve, reject) => {
-        
         try {
             await creatDbVer();
     
@@ -226,7 +228,7 @@ function insertDataRecord(record) {
             await dbExtensao._allTables[DATA_TABLE].add(dataInput);
     
             // console.log('pre-datatime-op');
-            await insertDataTime(record);
+            await insertDataTime(record, true, true, {...projetoAtual});
             await updateLastRecord(record);
             resolve(true);
         } catch (error) {
@@ -240,39 +242,43 @@ function insertDataRecord(record) {
 // 1. Verifica se um registro do domínio atual já existe, e cria um caso não exista
 // 2. Atualiza a quantidade de tempo do domínio
 // - Apenas um domínio por website e projeto, sem duplicatas
-function insertDataTime(record, ignoreDbVer = false) {
+function insertDataTime(record, ignoreDbVer = false, ignoreProject = false, dataProject = null) {
     return new Promise(async (resolve, reject) => {
         try {
             if(!ignoreDbVer)
             await creatDbVer();
             
             // Valida existência de um projeto ativo rodando
-            const queryProject = await dbExtensao._allTables[PROJECT_TABLE]
-            .where('id')
-            .notEqual(-1)
-            .and(
-                e => e.active == true
-            ).toArray();
-    
-            if(!Array.isArray(queryProject) || !queryProject[0]) {
-                resolve(false);
-                return;
+            let queryProject;
+            if(ignoreProject == false) {
+                queryProject = await dbExtensao._allTables[PROJECT_TABLE]
+               .where('id')
+               .notEqual(-1)
+               .and(
+                   e => e.active == true
+               ).toArray();
+       
+               if(!Array.isArray(queryProject) || !queryProject[0]) {
+                   resolve(false);
+                   return;
+                }
             }
     
             // Verifica se o projeto está rodando
-            const projetoAtual = queryProject[0];
+            const projetoAtual = (ignoreProject == false) ? queryProject[0] : dataProject;
             if(projetoAtual.running == false) {
                 resolve(false);
                 return;
             }
     
-            // Retorna o registro do domínio atual caso existir
+            // Retorna o registro do domínio do novo registro caso existir
             const queryTime = await dbExtensao._allTables[TIME_TABLE]
             .where('domain')
             .equals(String(record.domain))
             .and(registro => registro.projectId == projetoAtual.projectId)
             .toArray();
-    
+            
+            // Domínio do novo registro não existe
             if(!Array.isArray(queryTime) || queryTime.length == 0) {
                 const dataInput = {
                     domain: record.domain, 
@@ -280,11 +286,10 @@ function insertDataTime(record, ignoreDbVer = false) {
                     time: 0
                 }
                 await dbExtensao._allTables[TIME_TABLE].add(dataInput);
-            } else {
-                await updateTimeAmount({...queryTime[0]}, {...projetoAtual}, record, true);
             }
-    
-            // console.log('finished insertDataTime');
+
+            await updateTimeAmount({...projetoAtual}, record, true);
+
             resolve(true);
         } catch (error) {
             console.log(error);
@@ -294,33 +299,37 @@ function insertDataTime(record, ignoreDbVer = false) {
 }
 
 // Função que realiza a atualização da quantidade de tempo gasto em um determinado domínio
-// **Assume-se que a função sempre será chamada dentro de uma transaction pai**
-function updateTimeAmount(currentTime, projetoAtual, record, ignoreDbVer = false) {
+function updateTimeAmount(projetoAtual, record, ignoreDbVer = false) {
     return new Promise(async (resolve, reject) => {
         try {
             if(!ignoreDbVer)
             await creatDbVer();
             
+            // Verifica se existe último registro
             const last = await getLastRecord(true, false);
             if(last == false) {
                 resolve(false);
                 return;
             }
     
+            // Cácula a diferença de tempo entre o acesso do último registro e do registro atual
             const timeDiff = record.acessTime - last.acessTime;
-            const total = (currentTime.time != undefined && !isNaN(currentTime.time) ? currentTime.time : 0) + timeDiff;
-    
-            // console.log(currentTime, record);
-            // console.log(record.acessTime, last.acessTime, currentTime.time);
-            // console.log(timeDiff, total);
-    
+
+            const timeLast = (await dbExtensao._allTables[TIME_TABLE]
+            .where('domain')
+            .equals(String(last.domain))
+            .and(registro => registro.projectId == projetoAtual.projectId)
+            .toArray())[0];
+
+            const total = (timeLast.time + timeDiff);
+
+            // Atualiza o tempo gasto no domínio
             await dbExtensao._allTables[TIME_TABLE]
             .update(
-                currentTime.id, 
+                timeLast.id, 
                 { time: total }
             );
-    
-            // console.log('finished update');
+
             resolve(true);
         } catch (error) {
             console.log(error);
@@ -330,7 +339,6 @@ function updateTimeAmount(currentTime, projetoAtual, record, ignoreDbVer = false
 }
 
 // Atualiza tabela que armazena o último registro capturado
-// **Assume-se que a função sempre será chamada dentro de uma transaction pai**
 function updateLastRecord(record, ignoreDbVer = false) {
     return new Promise(async (resolve, reject) => {
         try {
@@ -387,6 +395,120 @@ function deleteLastRecord(ignoreDbVer = false) {
     });
 }
 
+// Atualizações de tempo do último registro em caso de fechamento do navegador
+function closeUpdateLastRecord() {
+    return new Promise(async (resolve, reject) => {
+        
+        try {
+            // Valida existência de um projeto ativo rodando
+            const queryProject = await dbExtensao._allTables[PROJECT_TABLE]
+            .where('id')
+            .notEqual(-1)
+            .and(
+                e => e.active == true
+            ).toArray();
+    
+            if(!Array.isArray(queryProject) || !queryProject[0]) {
+                resolve(false);
+                return;
+            }
+    
+            const projetoAtual = queryProject[0];
+    
+            // Valida a existência do último registro de controle
+            const last = await getLastRecord(true);
+    
+            if(last == false) {
+                resolve(false);
+                return;
+            }
+    
+            // Realiza o cáculo da diferença de tempo
+            const time = (new Date()).getTime();
+            const timeDiff = time - last.acessTime;
+    
+            // Captura o último registro da tabela de tempo para esse domínio
+            const timeLast = (await dbExtensao._allTables[TIME_TABLE]
+            .where('domain')
+            .equals(String(last.domain))
+            .and(registro => registro.projectId == projetoAtual.projectId)
+            .toArray())[0];
+    
+            const total = (timeLast.time + timeDiff);
+    
+            // Atualiza o tempo gasto no domínio
+            await dbExtensao._allTables[TIME_TABLE]
+            .update(
+                timeLast.id, 
+                { time: total }
+            );
+    
+            // Limpa a tabela de controle do último registro
+            await deleteLastRecord(true);
+    
+            resolve(true);
+        } catch (error) {
+            console.log(error);
+            resolve(false);
+        }
+    });
+}
+
+// Define a janela atualmente ativa
+function setCurrentWindow(id, ignoreDbVer = false) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if(!ignoreDbVer)
+            await creatDbVer();
+    
+            await clearCurrentWindow(true);
+            await dbExtensao._allTables[WINDOW_TABLE].add({ wid: id });
+    
+            resolve(true);
+        } catch (error) {
+            console.log(error);
+            resolve(false);
+        }
+    });
+}
+
+// Retorna a janela atualmente ativa
+function getCurrentWindow(ignoreDbVer = false) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if(!ignoreDbVer)
+            await creatDbVer();
+    
+            const queryLast = await dbExtensao._allTables[WINDOW_TABLE].toArray();
+            if(!Array.isArray(queryLast) || queryLast.length == 0) {
+                resolve(false);
+                return;
+            }
+    
+            resolve(queryLast[0]);
+        } catch (error) {
+            console.log(error);
+            resolve(false);
+        }
+    });
+}
+
+// Limpa a tabela que contem os registros de janela
+function clearCurrentWindow(ignoreDbVer = false) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if(!ignoreDbVer)
+            await creatDbVer();
+    
+            await dbExtensao._allTables[WINDOW_TABLE].clear()
+            resolve(true);
+        } catch (error) {
+            console.log(error);
+            resolve(false);
+        }
+    });
+}
+
 // Retorna um objeto formatado para registro no banco IndexedDB
 // - recebe um objeto contendo as informações da tab atual
 function formatDataRecordTabs(tabinfo) {
@@ -395,7 +517,7 @@ function formatDataRecordTabs(tabinfo) {
     delete reg.id;
 
     let domain = '';
-    if(isSearchUrl(domain)) {
+    if(isSearchUrl(reg.url)) {
         domain = reg.url != '' && reg.url != undefined ? reg.url : 'start-page';
 
         reg = { 
@@ -426,5 +548,9 @@ export {
     setProjectSess,
     insertDataRecord,
     formatDataRecordTabs,
-    deleteLastRecord
+    deleteLastRecord,
+    closeUpdateLastRecord,
+    setCurrentWindow,
+    getCurrentWindow,
+    clearCurrentWindow
 }

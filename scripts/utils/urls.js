@@ -24,9 +24,8 @@ function ignoreUrlNotSearch(urlCompare) {
         String(urlCompare).includes('ogs.google.com')  ||
         String(urlCompare).includes('www.googleadservices.com') ||
         String(urlCompare).includes('about:blank') ||
-        String(urlCompare).includes('chrome-untrusted://new-tab-pag') ||
-        String(urlCompare).includes('devtools://devtools') || 
-        String(urlCompare).includes('chrome://extensions/')
+        String(urlCompare).includes('chrome-untrusted://new-tab-pag')
+        
     )
     return true;
 
@@ -40,7 +39,9 @@ function isSearchUrl(urlCompare) {
         String(urlCompare).trim() == undefined ||
         String(urlCompare) == "chrome://new-tab-page/" ||
         String(urlCompare) == "chrome://newtab/" ||
-        String(urlCompare).includes('https://www.google.com/')
+        String(urlCompare).includes('https://www.google.com/') || 
+        String(urlCompare).includes('devtools://devtools') || 
+        String(urlCompare).includes('chrome://extensions/')
     )
     return true;
 
