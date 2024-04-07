@@ -103,7 +103,7 @@ function focusChangedEvent(windowId) {
         tabActiveEvent();
     });
 }
-// Disparado quando o focu da janela é alternado
+// Disparado quando o focus da janela é alternado
 // 1 - É um método inconsistente
 // 2 - Pode disparar múltiplas vezes em uma mesma janela sem alternar entre abas
 chrome.windows.onFocusChanged.addListener(focusChangedEvent, {windowTypes: ['normal']});

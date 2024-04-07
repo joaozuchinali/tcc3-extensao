@@ -536,6 +536,15 @@ function formatDataRecordTabs(tabinfo) {
         };
     
     }
+
+    const ninfo = navigator;
+    reg = {
+        ...reg,
+        useragent: ninfo['userAgent'] ? ninfo['userAgent'] : ninfo['userAgent'],
+        appversion: ninfo['appVersion'] ? ninfo['appVersion'] : '',
+        contype: ninfo['connection'] ? ninfo['connection']['effectiveType'] : ''
+    };
+
     return reg;
 }
 
