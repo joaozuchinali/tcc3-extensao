@@ -96,6 +96,23 @@ function extInfoConfig() {
         }
     });
 }
+// Retorna o registro contendo o identificador da extensão;
+function extInfoConfigGet() {
+    return new Promise(async (resolve, reject) => {
+        try {
+            await creatDbVer();
+            const reg = await dbExtensao._allTables[EXT_TABLE].toArray();
+            if(Array.isArray(reg) && reg.length) {
+                resolve(reg[0]);
+            } else {
+                resolve(false);
+            }
+        } catch (error) {
+            console.log(error);
+            resolve(false);
+        }
+    });
+}
 
 
 // === Métodos que controlam o projeto ativo ===
@@ -561,5 +578,6 @@ export {
     closeUpdateLastRecord,
     setCurrentWindow,
     getCurrentWindow,
-    clearCurrentWindow
+    clearCurrentWindow,
+    extInfoConfigGet
 }

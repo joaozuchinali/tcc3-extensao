@@ -1,3 +1,7 @@
+// const HTTP_REQ_ACCESS = 'https://joaozucchinalighislandi.com.br/api/projetos/access/';
+const HTTP_REQ_ACCESS = 'http://localhost:12005/api/projetos/access/';
+const HTTP_USO_CREATE = 'http://localhost:12005/api/usopesquisa/create/';
+
 // Lista completa de urls de controle para serem ignoradas
 function ignoreUrl(urlCompare) {
     if (
@@ -51,5 +55,7 @@ function isSearchUrl(urlCompare) {
 export { 
     ignoreUrl,
     ignoreUrlNotSearch,
-    isSearchUrl
+    isSearchUrl,
+    HTTP_REQ_ACCESS,
+    HTTP_USO_CREATE
 }

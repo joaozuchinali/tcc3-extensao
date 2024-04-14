@@ -14,7 +14,12 @@
         "topSites",
         "tabGroups",
         "history",
-        "webNavigation"
+        "webNavigation",
+        "webRequest"
+    ],
+    "host_permissions": [
+        "http://*",
+        "https://*"
     ],
     "background": {
         "service_worker": "./scripts/worker/service-worker.js",

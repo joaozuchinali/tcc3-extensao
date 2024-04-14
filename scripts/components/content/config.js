@@ -219,7 +219,6 @@ function projectDisconnect() {
             Triggers.sessResetConfig();
             setViews();
         }
-
     })
     .catch((err) => {
         console.log(err);
