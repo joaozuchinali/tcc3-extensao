@@ -27,6 +27,10 @@ chrome.runtime.onInstalled.addListener(function() {
     startDatabase().then(e => {
         extInfoConfig();
     });
+
+    chrome.alarms.create('sincronismo', {
+        periodInMinutes: 1
+    });
 });
 
 // Verifica quando a janela foi fechada
@@ -108,6 +112,10 @@ function focusChangedEvent(windowId) {
 // 2 - Pode disparar múltiplas vezes em uma mesma janela sem alternar entre abas
 chrome.windows.onFocusChanged.addListener(focusChangedEvent, {windowTypes: ['normal']});
 
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+    console.log(alarm.name);
+});
 
 // Retorna um objeto contendo as informações atuais da tab selecionada
 async function getTabInfo() {
