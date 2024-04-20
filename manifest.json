@@ -15,7 +15,8 @@
         "tabGroups",
         "history",
         "webNavigation",
-        "webRequest"
+        "webRequest",
+        "alarms"
     ],
     "host_permissions": [
         "http://*",
