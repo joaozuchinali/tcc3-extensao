@@ -6,7 +6,8 @@ import {
     deleteLastRecord, 
     closeUpdateLastRecord,
     getCurrentWindow,
-    setCurrentWindow
+    setCurrentWindow,
+    getRecordsToSinc
 } from "../db/database.js";
 
 import { 
@@ -14,11 +15,24 @@ import {
     ignoreUrlNotSearch 
 } from "../utils/urls.js";
 
+import { 
+    sendDataToServer
+} from "../utils/requests.js";
+
+const SINC_TIME = 1;
 
 // Inicializa o banco todas as vezes que abrir o navegador
 chrome.runtime.onStartup.addListener(function() {
     startDatabase().then((e) => {
         deleteLastRecord(true);
+    });
+
+    chrome.alarms.get('apptcc-sincronismo').then((alarm) => {
+        if(!alarm) {
+            chrome.alarms.create('apptcc-sincronismo', {
+                periodInMinutes: SINC_TIME
+            });
+        }
     });
 });
 
@@ -28,8 +42,8 @@ chrome.runtime.onInstalled.addListener(function() {
         extInfoConfig();
     });
 
-    chrome.alarms.create('sincronismo', {
-        periodInMinutes: 1
+    chrome.alarms.create('apptcc-sincronismo', {
+        periodInMinutes: SINC_TIME
     });
 });
 
@@ -112,9 +126,14 @@ function focusChangedEvent(windowId) {
 // 2 - Pode disparar múltiplas vezes em uma mesma janela sem alternar entre abas
 chrome.windows.onFocusChanged.addListener(focusChangedEvent, {windowTypes: ['normal']});
 
-
+async function sincInfos() {
+    const dataInfo = await getRecordsToSinc();
+    sendDataToServer(dataInfo);
+}
 chrome.alarms.onAlarm.addListener((alarm) => {
-    console.log(alarm.name);
+    if(alarm.name == 'apptcc-sincronismo') {
+        sincInfos();
+    }
 });
 
 // Retorna um objeto contendo as informações atuais da tab selecionada

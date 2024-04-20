@@ -13,7 +13,7 @@ const TIME_TABLE = 'time';
 const LAST_TABLE = 'last-record';
 const WINDOW_TABLE = 'window-table';
 // Db version corde
-const DB_VERSION = 9;
+const DB_VERSION = 11;
 
 let dbExtensao = null;
 
@@ -44,8 +44,8 @@ async function createTables() {
     dbExtensao.version(DB_VERSION).stores({
         [PROJECT_TABLE]: "++id,projectId,userId,active,running",
         [EXT_TABLE]: "++id,extId",
-        [DATA_TABLE]: "++id,domain,projectId",
-        [TIME_TABLE]: "++id,domain,projectId,time",
+        [DATA_TABLE]: "++id,domain,projectId,sincstatus",
+        [TIME_TABLE]: "++id,domain,projectId,time,sincstatus",
         [LAST_TABLE]: "++id",
         [WINDOW_TABLE]: "++id,wid"
     });
@@ -300,7 +300,8 @@ function insertDataTime(record, ignoreDbVer = false, ignoreProject = false, data
                 const dataInput = {
                     domain: record.domain, 
                     projectId: projetoAtual.projectId, 
-                    time: 0
+                    time: 0,
+                    sincstatus: 0
                 }
                 await dbExtensao._allTables[TIME_TABLE].add(dataInput);
             }
@@ -535,10 +536,11 @@ function formatDataRecordTabs(tabinfo) {
 
     let domain = '';
     if(isSearchUrl(reg.url)) {
-        domain = reg.url != '' && reg.url != undefined ? reg.url : 'start-page';
+        domain = reg.url != '' && reg.url != undefined ? reg.url : 'https://www.google.com/';
+        domain = (new URL(reg.url));
 
         reg = { 
-            domain: domain, 
+            domain: domain.hostname, 
             acessTime: (new Date()).getTime(),
             ...reg
         };
@@ -559,11 +561,118 @@ function formatDataRecordTabs(tabinfo) {
         ...reg,
         useragent: ninfo['userAgent'] ? ninfo['userAgent'] : ninfo['userAgent'],
         appversion: ninfo['appVersion'] ? ninfo['appVersion'] : '',
-        contype: ninfo['connection'] ? ninfo['connection']['effectiveType'] : ''
+        contype: ninfo['connection'] ? ninfo['connection']['effectiveType'] : '',
+        sincstatus: 0
     };
 
     return reg;
 }
+
+// Retorna os registros atuais para o sincronismo
+function getRecordsToSinc(ignoreDbVer = false) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if(!ignoreDbVer)
+            await creatDbVer();
+            
+            // Valida existência de um projeto ativo rodando
+            let queryProject = await dbExtensao._allTables[PROJECT_TABLE]
+            .where('id')
+            .notEqual(-1)
+            .and(
+                e => e.active == true
+            ).toArray();
+   
+            if(!Array.isArray(queryProject) || !queryProject[0]) {
+               resolve(false);
+               return;
+            }
+
+            // Verifica se o projeto está rodando
+            const projetoAtual = queryProject[0];
+            if(projetoAtual.running == false) {
+                resolve(false);
+                return;
+            }
+
+            // Atualizar o registro atual de tempo
+            const last = {...(await getLastRecord())};
+            last.acessTime = (new Date()).getTime();
+            await insertDataTime({...last}, true, true, {...projetoAtual});
+
+            // Retorna todos os registros de navegação
+            let navigationRecords = await dbExtensao._allTables[DATA_TABLE]
+                                            .where('sincstatus')
+                                            .equals(0)
+                                            .and(
+                                                record => record.projectId = projetoAtual.projectId
+                                            )
+                                            .toArray();
+            // Inseri o id do usuário
+            if(Array.isArray(navigationRecords) && navigationRecords.length > 0) {
+                navigationRecords = navigationRecords.map(e => new Object(
+                    { 
+                        ...e, 
+                        userId: projetoAtual.userId
+                        // projectIndex: projetoAtual.projectIndex
+                    }
+                ));
+            }
+            
+            // Retorna os registros de contabilização do tempo
+            let timeRecords = await dbExtensao._allTables[TIME_TABLE]
+                                      .where('sincstatus')
+                                      .equals(0)
+                                      .and(
+                                        record => record.projectId = projetoAtual.projectId
+                                      )
+                                      .toArray();
+            // Insere o id do usuário
+            if (Array.isArray(timeRecords) && timeRecords.length > 0) {
+                timeRecords = timeRecords.map(e => new Object(
+                    { 
+                        ...e, 
+                        userId: projetoAtual.userId
+                        // projectIndex: projetoAtual.projectIndex
+                    }
+                ));
+            }
+            
+            resolve({
+                navigationRecords: Array.isArray(navigationRecords) ? navigationRecords : [],
+                timeRecords: Array.isArray(timeRecords) ? timeRecords : []
+            });
+        } catch (error) {
+            console.log(error);
+            resolve(false);
+        }
+    });
+}
+
+// Atualiza os registros alternando o status dos mesmos
+function updateRecordStatus(records, tabela, ignoreDbVer = false) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if(!ignoreDbVer)
+            await creatDbVer();
+            
+            const updateQuery = [];
+            for (const record of records) {
+                record.sincstatus = 1;
+                updateQuery.push(record);
+            }
+
+            console.log(dbExtensao._allTables);
+            await dbExtensao._allTables[tabela].bulkPut(updateQuery);
+
+            resolve(true);
+        } catch (error) {
+            console.log(error);
+            resolve(false);
+        }
+    });
+}
+
 
 export { 
     extInfoConfig,
@@ -579,5 +688,9 @@ export {
     setCurrentWindow,
     getCurrentWindow,
     clearCurrentWindow,
-    extInfoConfigGet
+    extInfoConfigGet,
+    getRecordsToSinc,
+    updateRecordStatus,
+    DATA_TABLE,
+    TIME_TABLE
 }
