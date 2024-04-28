@@ -107,7 +107,7 @@ async function configStart() {
     // Verifica o campo do identificador
     const checks1 = validation(identificador.value, {
         minLength: 9,
-        maxLength: 9,
+        maxLength: 12,
         isChar: true,
         isField: true, fieldName: 'Identificador'
     });
