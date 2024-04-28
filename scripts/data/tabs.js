@@ -8,13 +8,13 @@ const TABS = [
         "id": "config-tab",
         "template_id": "template-config",
         "content": CONFIG_CONTENT
-    },
-    {
-        "name": "Sobre",
-        "id": "status-tab",
-        "template_id": "template-infos",
-        "content": INFO_CONTENT
     }
+    // {
+    //     "name": "Sobre",
+    //     "id": "status-tab",
+    //     "template_id": "template-infos",
+    //     "content": INFO_CONTENT
+    // }
 ];
 
 export { TABS, HEADER_ID };
