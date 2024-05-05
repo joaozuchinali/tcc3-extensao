@@ -244,7 +244,6 @@ function insertDataRecord(record) {
             const dataInput = {...record, projectId: projetoAtual.projectId};
             await dbExtensao._allTables[DATA_TABLE].add(dataInput);
     
-            // console.log('pre-datatime-op');
             await insertDataTime(record, true, true, {...projetoAtual});
             await updateLastRecord(record);
             resolve(true);
@@ -345,7 +344,7 @@ function updateTimeAmount(projetoAtual, record, ignoreDbVer = false) {
             await dbExtensao._allTables[TIME_TABLE]
             .update(
                 timeLast.id, 
-                { time: total }
+                { time: total, sincstatus: 0 }
             );
 
             resolve(true);
@@ -595,10 +594,30 @@ function getRecordsToSinc(ignoreDbVer = false) {
                 return;
             }
 
+            let queryOptions = {active: true}; // active: true, currentWindow: true 
+            let [tab] = await chrome.tabs.query(queryOptions);
+            const reg = formatDataRecordTabs({...tab});
+            const checkLastRecord = {...reg};
+
+
             // Atualizar o registro atual de tempo
-            const last = {...(await getLastRecord())};
+            let last = {...(await getLastRecord())};
+
+            // Caso o registro de controle não for o mesmo domínio
+            console.log(last, checkLastRecord);
+            if(last.domain != checkLastRecord.domain && checkLastRecord.domain) {
+                last = {...checkLastRecord};
+
+                const dataInput = {...checkLastRecord, projectId: projetoAtual.projectId};
+                await dbExtensao._allTables[LAST_TABLE].clear();
+                await dbExtensao._allTables[LAST_TABLE].add(dataInput);
+            }
+
+            // Atualiza o tempo do último registro
             last.acessTime = (new Date()).getTime();
             await insertDataTime({...last}, true, true, {...projetoAtual});
+            await dbExtensao._allTables[LAST_TABLE].clear();
+            await dbExtensao._allTables[LAST_TABLE].add(last);
 
             // Retorna todos os registros de navegação
             let navigationRecords = await dbExtensao._allTables[DATA_TABLE]
@@ -614,7 +633,6 @@ function getRecordsToSinc(ignoreDbVer = false) {
                     { 
                         ...e, 
                         userId: projetoAtual.userId
-                        // projectIndex: projetoAtual.projectIndex
                     }
                 ));
             }

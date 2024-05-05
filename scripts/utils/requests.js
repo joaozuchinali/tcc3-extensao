@@ -113,6 +113,7 @@ function createUso(projeto) {
     });
 }
 
+// Centralizador do envio de registros
 function sendDataToServer(dataInfo) {
     return new Promise(async (resolve, reject) => {
         if(dataInfo == false) {
@@ -121,86 +122,102 @@ function sendDataToServer(dataInfo) {
             return;
         }
 
-        if(Array.isArray(dataInfo.navigationRecords) && dataInfo.navigationRecords.length == 0) {
+        if(Array.isArray(dataInfo.navigationRecords) && dataInfo.navigationRecords.length != 0) {
+            await sendRecordsNavigation(dataInfo.navigationRecords);
+        } else {
             console.log('no data');
-            resolve(false);
-            return;
         }
 
-        if(Array.isArray(dataInfo.timeRecords) && dataInfo.timeRecords.length == 0) {
+        if(Array.isArray(dataInfo.timeRecords) && dataInfo.timeRecords.length != 0) {
+            console.log('time sent')
+            await sendTimeValues(dataInfo.timeRecords);
+        } else {
             console.log('no time');
-            resolve(false);
-            return;
-        }
-
-        const base = dataInfo.navigationRecords[0];
-        const bodyData = {
-            idusopesquisados: base.userId,
-            identificador: base.projectId,
-            registros: []
-        }
-
-        // Enviar registros de navegação
-        const navBody = JSON.parse(JSON.stringify(bodyData));
-        for (const record of dataInfo.navigationRecords) {
-            navBody.registros.push({
-                acessTime: record.acessTime,
-                dominio: record.domain,
-                incognito: record.incognito,
-                title: record.title,
-                url: record.url,
-                favIconUrl: record.favIconUrl ? record.favIconUrl : "",
-                width: record.width,
-                height: record.height,
-                useragent: record.useragent ? record.useragent : "",
-                appversion: record.appversion ? record.appversion : "",
-                contype: record.contype,
-                idusopesquisados: record.userId
-            });
-        }
-
-        const headerNavigation = {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(navBody)
-        }
-
-        const infoData       = await fetch(HTTP_POST_DATA, headerNavigation);
-        const parsedInfoData = await infoData.json();
-        if(parsedInfoData.status == 'success') {
-            console.log('data sent');
-            updateRecordStatus(dataInfo.navigationRecords, DATA_TABLE);
-        }
-
-
-        // Enviar registros de tempo
-        const timeBody = JSON.parse(JSON.stringify(bodyData));
-        for (const record of dataInfo.timeRecords) {
-            timeBody.registros.push({
-                tempo: record.time,
-                dominio: record.domain,
-                idusopesquisados: record.userId
-            });
-        }
-
-        const headerTime = {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(timeBody)
-        }
-        // console.log(headerTime);
-        const infoTime       = await fetch(HTTP_POST_TIME, headerTime);
-        const parsedInfoTime = await infoTime.json();
-        if(parsedInfoTime.status == 'success') {
-            console.log('time sent');
-            updateRecordStatus(dataInfo.timeRecords, TIME_TABLE);
         }
     });
 }
+
+// Enviar os registros de navegação
+async function sendRecordsNavigation(input) {
+    const base = [...input];
+
+    const bodyData = {
+        idusopesquisados: base[0].userId,
+        identificador: base[0].projectId,
+        registros: []
+    }
+
+    for (const record of base) {
+        bodyData.registros.push({
+            acessTime: record.acessTime,
+            dominio: record.domain,
+            incognito: record.incognito,
+            title: record.title,
+            url: record.url,
+            favIconUrl: record.favIconUrl ? record.favIconUrl : "",
+            width: record.width,
+            height: record.height,
+            useragent: record.useragent ? record.useragent : "",
+            appversion: record.appversion ? record.appversion : "",
+            contype: record.contype,
+            idusopesquisados: record.userId
+        });
+    }
+
+    const headerNavigation = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(bodyData)
+    }
+
+    const infoData       = await fetch(HTTP_POST_DATA, headerNavigation);
+    const parsedInfoData = await infoData.json();
+    if(parsedInfoData.status == 'success') {
+        console.log('data sent');
+        updateRecordStatus(base, DATA_TABLE);
+    }
+}
+
+
+// Enviar registros de tempo
+async function sendTimeValues(input) {
+    const base = [...input];
+
+    const bodyData = {
+        idusopesquisados: base[0].userId,
+        identificador: base[0].projectId,
+        registros: []
+    }
+
+    for (const record of base) {
+        if(!record.domain || record.userId == 0 || record.projectId == 0)
+            continue;
+
+        bodyData.registros.push({
+            tempo: record.time,
+            dominio: record.domain,
+            idusopesquisados: record.userId
+        });
+    }
+
+    const headerTime = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(bodyData)
+    }
+    // console.log(headerTime);
+    const infoTime       = await fetch(HTTP_POST_TIME, headerTime);
+    const parsedInfoTime = await infoTime.json();
+    if(parsedInfoTime.status == 'success') {
+        console.log('time sent');
+        updateRecordStatus(base, TIME_TABLE);
+    }
+}
+
 
 export {
     requestAcess,
