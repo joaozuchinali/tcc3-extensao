@@ -2,6 +2,7 @@
 import Dexie from '../../plugins/dexie-3.2.7.js'
 import { generateKey } from '../utils/keygenerator.js';
 import { isSearchUrl } from '../utils/urls.js';
+import { ignoreUrlNotSearch } from '../utils/urls.js';
 
 // Db name
 const DB_NAME = 'tcc3-extensao';
@@ -203,6 +204,25 @@ function setProjectSess(status = false) {
                     queryProject[0].id, 
                     updateValues
                 );
+
+                if(status == true) {
+                    // Atualiza a quantidade de tempo do último registro para evitar erros na contagem do tempo
+                    const registrols = await getLastRecord(true);
+                    if(registrols != false && registrols && typeof registrols == 'object') {
+                        const newreg = {...registrols}
+                        newreg.acessTime = (new Date()).getTime();
+                        await updateLastRecord(newreg);
+                    }
+                    
+                    // Atualiza o último registro para a tab atual após início da sessão
+                    let queryOptions = { active: true, currentWindow: true };
+                    let [tab] = await chrome.tabs.query(queryOptions);
+
+                    if(!ignoreUrlNotSearch(tab.url)) {
+                        const reg = formatDataRecordTabs({...tab});
+                        insertDataRecord(reg);
+                    }
+                }
                 
                 resolve({status: true, msg: 'Sucesso ao configurar a sessão do projeto'});
             }
@@ -244,7 +264,6 @@ function insertDataRecord(record) {
             const dataInput = {...record, projectId: projetoAtual.projectId};
             await dbExtensao._allTables[DATA_TABLE].add(dataInput);
     
-            // console.log('pre-datatime-op');
             await insertDataTime(record, true, true, {...projetoAtual});
             await updateLastRecord(record);
             resolve(true);
@@ -345,7 +364,7 @@ function updateTimeAmount(projetoAtual, record, ignoreDbVer = false) {
             await dbExtensao._allTables[TIME_TABLE]
             .update(
                 timeLast.id, 
-                { time: total }
+                { time: total, sincstatus: 0 }
             );
 
             resolve(true);
@@ -595,10 +614,30 @@ function getRecordsToSinc(ignoreDbVer = false) {
                 return;
             }
 
+            let queryOptions = {active: true}; // active: true, currentWindow: true 
+            let [tab] = await chrome.tabs.query(queryOptions);
+            const reg = formatDataRecordTabs({...tab});
+            const checkLastRecord = {...reg};
+
+
             // Atualizar o registro atual de tempo
-            const last = {...(await getLastRecord())};
+            let last = {...(await getLastRecord())};
+
+            // Caso o registro de controle não for o mesmo domínio
+            console.log(last, checkLastRecord);
+            if(last.domain != checkLastRecord.domain && checkLastRecord.domain) {
+                last = {...checkLastRecord};
+
+                const dataInput = {...checkLastRecord, projectId: projetoAtual.projectId};
+                await dbExtensao._allTables[LAST_TABLE].clear();
+                await dbExtensao._allTables[LAST_TABLE].add(dataInput);
+            }
+
+            // Atualiza o tempo do último registro
             last.acessTime = (new Date()).getTime();
             await insertDataTime({...last}, true, true, {...projetoAtual});
+            await dbExtensao._allTables[LAST_TABLE].clear();
+            await dbExtensao._allTables[LAST_TABLE].add(last);
 
             // Retorna todos os registros de navegação
             let navigationRecords = await dbExtensao._allTables[DATA_TABLE]
@@ -614,7 +653,6 @@ function getRecordsToSinc(ignoreDbVer = false) {
                     { 
                         ...e, 
                         userId: projetoAtual.userId
-                        // projectIndex: projetoAtual.projectIndex
                     }
                 ));
             }

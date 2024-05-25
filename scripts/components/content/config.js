@@ -1,9 +1,10 @@
-import { requestAcess } from "../../utils/requests.js";
-import { setProject, getProject, disableProject, setProjectSess } from "../../db/database.js";
+import { requestAcess, sendDataToServer } from "../../utils/requests.js";
+import { setProject, getProject, disableProject, setProjectSess, getRecordsToSinc, formatDataRecordTabs, insertDataRecord } from "../../db/database.js";
 import { SESSAO } from "../../utils/sessao.js";
 import { Triggers } from "../../utils/triggers.js";
 import { clsToggle } from "../../utils/style.js";
 import { validation } from "../../utils/validator.js";
+import { ignoreUrlNotSearch } from "../../utils/urls.js";
 
 // Função centralizadora da tab de Configuração
 function ConfigContentTab() {
@@ -164,45 +165,46 @@ function autoSess() {
 }
 
 // Inicializa uma sessão
-function startSession(initSess, endSess, auto = false) {
+async function startSession(initSess, endSess, auto = false) {
     if(auto == false) {
         Triggers.showLoadding();
     }
 
     if(auto == false) {
-        setProjectSess(true)
-        .then(sess => {
-            if(sess.status == false) {
-                Triggers.configError(sess.msg);
-            } else {
-                SESSAO.session_active = true;
-                initSess.classList.add('hidden');
-                endSess.classList.remove('hidden');
-            }
+        const sess = await setProjectSess(true);
 
-            Triggers.hideLoadding();
-        });
+        if(sess.status == false) {
+            Triggers.configError(sess.msg);
+        } else {
+            SESSAO.session_active = true;
+            initSess.classList.add('hidden');
+            endSess.classList.remove('hidden');
+        }
+
+        Triggers.hideLoadding();
     }
 }
 
 // Finaliza uma sessão
-function endSession(initSess, endSess, auto = false) {
+async function endSession(initSess, endSess, auto = false) {
     if(auto == false) {
         Triggers.showLoadding();
     }
 
     if(auto == false) {
-        setProjectSess(false).then(sess => {
-            if(sess.status == false) {
-                Triggers.configError(sess.msg);
-            } else {
-                SESSAO.session_active = false;
-                initSess.classList.remove('hidden');
-                endSess.classList.add('hidden');
-            }
+        const dataInfo = await getRecordsToSinc();
+        sendDataToServer(dataInfo);
 
-            Triggers.hideLoadding();
-        });
+        const sess = await setProjectSess(false);
+
+        if(sess.status == false) {
+            Triggers.configError(sess.msg);
+        } else {
+            SESSAO.session_active = false;
+            initSess.classList.remove('hidden');
+            endSess.classList.add('hidden');
+        }
+        Triggers.hideLoadding();
     }
 }
 
@@ -225,5 +227,24 @@ function projectDisconnect() {
         Triggers.hideLoadding();
     });
 }
+
+// async function insertStart() {
+//     const tab = await getTabInfo();
+
+//     // Links de controle dos navegadores, não interessantes para o caso da extensão
+//     if(ignoreUrlNotSearch(tab.url))
+//     return;
+
+//     const reg = formatDataRecordTabs({...tab});
+//     insertDataRecord(reg);
+// }
+
+// // Retorna um objeto contendo as informações atuais da tab selecionada
+// async function getTabInfo() {
+//     let queryOptions = { active: true, currentWindow: true };
+//     let [tab] = await chrome.tabs.query(queryOptions);
+
+//     return tab;
+// }
 
 export { ConfigContentTab };

@@ -130,7 +130,7 @@ async function sincInfos() {
     const dataInfo = await getRecordsToSinc();
     sendDataToServer(dataInfo);
 }
-chrome.alarms.onAlarm.addListener((alarm) => {
+chrome.alarms.onAlarm.addListener(async (alarm) => {
     if(alarm.name == 'apptcc-sincronismo') {
         sincInfos();
     }
