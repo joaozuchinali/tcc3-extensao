@@ -2,6 +2,7 @@
 import Dexie from '../../plugins/dexie-3.2.7.js'
 import { generateKey } from '../utils/keygenerator.js';
 import { isSearchUrl } from '../utils/urls.js';
+import { ignoreUrlNotSearch } from '../utils/urls.js';
 
 // Db name
 const DB_NAME = 'tcc3-extensao';
@@ -203,6 +204,25 @@ function setProjectSess(status = false) {
                     queryProject[0].id, 
                     updateValues
                 );
+
+                if(status == true) {
+                    // Atualiza a quantidade de tempo do último registro para evitar erros na contagem do tempo
+                    const registrols = await getLastRecord(true);
+                    if(registrols != false && registrols && typeof registrols == 'object') {
+                        const newreg = {...registrols}
+                        newreg.acessTime = (new Date()).getTime();
+                        await updateLastRecord(newreg);
+                    }
+                    
+                    // Atualiza o último registro para a tab atual após início da sessão
+                    let queryOptions = { active: true, currentWindow: true };
+                    let [tab] = await chrome.tabs.query(queryOptions);
+
+                    if(!ignoreUrlNotSearch(tab.url)) {
+                        const reg = formatDataRecordTabs({...tab});
+                        insertDataRecord(reg);
+                    }
+                }
                 
                 resolve({status: true, msg: 'Sucesso ao configurar a sessão do projeto'});
             }
