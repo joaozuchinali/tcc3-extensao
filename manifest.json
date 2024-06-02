@@ -1,6 +1,6 @@
 {
     "name": "Unesc TCC3: Extensão para coleta de dados",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Teste",
     "author": "João Vitor Zucchinali Ghislandi",
     "action": {
@@ -10,12 +10,7 @@
     "manifest_version": 3,
     "permissions": [
         "tabs",
-        "userScripts",
-        "topSites",
-        "tabGroups",
-        "history",
         "webNavigation",
-        "webRequest",
         "alarms"
     ],
     "host_permissions": [

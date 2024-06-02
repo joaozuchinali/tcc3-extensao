@@ -1,8 +1,12 @@
-// const HTTP_REQ_ACCESS = 'https://joaozucchinalighislandi.com.br/api/projetos/access/';
 const HTTP_REQ_ACCESS = 'http://localhost:12005/api/projetos/access/';
 const HTTP_USO_CREATE = 'http://localhost:12005/api/usopesquisa/create/';
 const HTTP_POST_DATA  = 'http://localhost:12005/api/registros/navegacao/';
 const HTTP_POST_TIME  = 'http://localhost:12005/api/registros/tempo/';
+
+// const HTTP_REQ_ACCESS = 'https://tcc-api-3jrp.onrender.com/api/projetos/access/';
+// const HTTP_USO_CREATE = 'https://tcc-api-3jrp.onrender.com/api/usopesquisa/create/';
+// const HTTP_POST_DATA  = 'https://tcc-api-3jrp.onrender.com/api/registros/navegacao/';
+// const HTTP_POST_TIME  = 'https://tcc-api-3jrp.onrender.com/api/registros/tempo/';
 
 
 // Lista completa de urls de controle para serem ignoradas
